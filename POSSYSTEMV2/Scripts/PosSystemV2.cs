@@ -113,8 +113,8 @@ public class PosSystemV2 : UdonSharpBehaviour
         boolCusAccept = false;
         cusActive = false;
         barActive = false;
-        totalCostTxtB.text = "Cost:$0000.00"; ;
-        totalCostTxtC.text = "Cost:$0000.00";
+        totalCostTxtB.text = "$0000.00"; ;
+        totalCostTxtC.text = "$0000.00";
         cusPaymentB.text = "Pay:$0000.00";
         cusPaymentC.text = "Pay:$0000.00";
         barInputText.text = "$0000.00";
@@ -307,12 +307,12 @@ public class PosSystemV2 : UdonSharpBehaviour
 
             itemTableB.text = "";
             itemTableC.text = "";
-            totalCostTxtB.text = "Cost:$0000.00";
+            totalCostTxtB.text = "$0000.00";
             itemString = itemTableB.text = "";
             priceTableB.text = "";
             priceTableC.text = "";
             priceString = priceTableC.text;
-            totalCostTxtC.text = "Cost:$0000.00";
+            totalCostTxtC.text = "$0000.00";
             barInput = 0;
             storedItem = "";
 
@@ -365,7 +365,7 @@ public class PosSystemV2 : UdonSharpBehaviour
         cusName.text = strCusName;
         cusNameBar.text = strCusName;
         cusAccount.text = "Acct:$0000.00";
-        totalCostTxtC.text = "Cost:$0000.00";
+        totalCostTxtC.text = "$0000.00";
         cusPaymentC.text = "Pay:$0000.00";
         cusPaymentB.text = "Pay:$0000.00";
         _input = "";
@@ -379,7 +379,7 @@ public class PosSystemV2 : UdonSharpBehaviour
         {
             if (!Networking.IsOwner(gameObject)) Networking.SetOwner(localPlayer, gameObject);
             float number = 0;
-            // check if Bar input is an interger
+            // check if Bar input is an interger, Get user tip input
             if (float.TryParse(_input, out number))
                 if (float.Parse(_input) != 0)
                 {
@@ -426,15 +426,18 @@ public class PosSystemV2 : UdonSharpBehaviour
                         float newstoredv = barInput + barkeyInput;
                         totalCostTxtB.text = "$" + newstoredv.ToString();
                         totalCostTxtC.text = "$" + newstoredv.ToString();
-                        itemTableB.text += " MISC".ToString() + "\n";
-                        itemTableC.text += " MISC".ToString() + "\n";
-                        itemString = itemTableC.text += " MISC".ToString() + "\n";
-                        priceTableB.text += "$" + barkeyInput.ToString() + "\n";
-                        priceTableC.text += "$" + barkeyInput.ToString() + "\n";
-                        priceString = priceTableC.text += "$" + barkeyInput.ToString() + "\n";
+
+                        itemString += " MISC".ToString() + "\n"; // Add new Text TO itemString
+                        itemTableC.text = itemString;
+                        itemTableB.text = itemString;
+
+                        priceString +=  " " + barkeyInput.ToString() + "\n"; // Add new Text to priceString
+                        priceTableC.text = priceString;
+                        priceTableB.text = priceString;
+
                         barInputText.text = "0000.00";
                         barInput = newstoredv;
-                        storedItem += "(1) MISC: " + barkeyInput + ", ";
+                        storedItem += " MISC: " + barkeyInput + ", ";
                         DoStuff();
                         RequestSerialization();
                     }
@@ -542,7 +545,7 @@ public class PosSystemV2 : UdonSharpBehaviour
                 textDebug.text += "\nBar: Got " + cusInputVal + "added to their account";
                 Debug.Log("Bar got " + barAmount + "added to there acount");
                 barAccount.text = "Acct:$" + barAmount.ToString();
-                Receipt(storedItem, barInput, strCusName, tipAmount);
+                Receipt(storedItem, barInput, strCusName, tipAmount, strBarName);
                 localPlayer.SetPlayerTag("PID", 0.ToString());
                 DoStuff();
                 RequestSerialization();
@@ -565,8 +568,8 @@ public class PosSystemV2 : UdonSharpBehaviour
     public void CategorySelect(int stageNum)
     {
         string catType = null;
-        GameObject.Find("Receipt").transform.GetChild(0).gameObject.gameObject.SetActive(false);// set Receipt object active
-        //if (localPlayer.GetPlayerTag("PID") == 1.ToString()) catType = "SubcategoriesC";
+        GameObject.Find("Receipt").transform.GetChild(0).gameObject.gameObject.SetActive(false);// set Receipt object false
+
         if (localPlayer.GetPlayerTag("PID") == 2.ToString() || localPlayer.GetPlayerTag("PID") == 1.ToString() || localPlayer.GetPlayerTag("Phone") == 1.ToString() | localPlayer.GetPlayerTag("Phone") == 2.ToString())
         {
             catType = "SubcategoriesB";
@@ -575,46 +578,57 @@ public class PosSystemV2 : UdonSharpBehaviour
             else stageNum = 0;
         }
         else return;
+
         if (stageNum == 0) itemName = localPlayer.GetPlayerTag("Item").ToString() + "Item"; // User clicked main category, ex Entres
         else itemName = localPlayer.GetPlayerTag("Item").ToString(); // user clicked subcategory, ex. chicken
+        Debug.LogWarning(itemName + " this is ItemName");
 
         GameObject subCat = GameObject.Find(catType); // Find GameObject name
-        int catCount = subCat.transform.childCount; //Get number count of childs
-        Debug.LogWarning(catCount);
+        Debug.LogWarning(subCat + " This is the Subcat Name");
+
+        if (stageNum == 1 && subCat.transform.GetChild(0).gameObject.name == "Panel") // Make sure that we find children in panels not in EntresItem childs
+        {
+            Debug.LogWarning("Found Panel Gameobject");
+            subCat = GameObject.Find("Panel"); // Make sure that we are in Panel gameobject
+            Debug.LogWarning(subCat + " is new subCat");
+        }
+
+        int catCount = subCat.transform.childCount; //Get Child count
+        Debug.LogWarning(catCount + " is CatCount");
 
         for (int i = 0; i < catCount; i++)
         {
             Debug.LogWarning(catType + " is CatType");
             if (subCat != true) return; // Safety net 
-            GameObject Catchild = subCat.transform.GetChild(i).gameObject; // Get childs of Category type
-            string catChildName = Catchild.name; // Get GameObject name of child
-            GameObject ItemChildTxt = Catchild.transform.GetChild(0).gameObject; // Get child object of CateType first child
+            GameObject catChild = subCat.transform.GetChild(i).gameObject; // Get childs of Category type
+            string catChildName = catChild.name; // Get GameObject name of child
+            GameObject itemChildTxt = catChild.transform.GetChild(0).gameObject; // Get child object of CateType first child
 
             if (catChildName == itemName && stageNum == 0)// Main category
             {
                 Debug.LogWarning("is Found item");
-                Debug.LogWarning(Catchild + "is Category type");
-                Catchild.SetActive(true); // Set found Child active
+                Debug.LogWarning(catChild + " is Category type");
+                catChild.SetActive(true); // Set found Child active
                 lastType = itemName;
             }
             else if (catChildName == itemName && stageNum == 2) // keypad
             {
                 Debug.LogWarning("Keypad number found");
-                Debug.LogWarning(Catchild + " is Category type");
-                float keypadInput = float.Parse(ItemChildTxt.GetComponent<Text>().text); // Get keypad text
+                Debug.LogWarning(catChild + " is Category type");
+                float keypadInput = float.Parse(itemChildTxt.GetComponent<Text>().text); // Get keypad text
                 KeyPadInput(keypadInput);
                 break;
             }
             else if (catChildName == itemName && stageNum == 1) // Subcategory
             {
                 Debug.LogWarning("Item Found");
-                Debug.LogWarning(Catchild + "is Category type");
+                Debug.LogWarning(catChild + "is Category type");
                 //Debug.LogWarning(Catchild.transform.hierarchyCount); Can use to get number of all childs in hierarchy, ex bones in armature
-                itemString += "(1) " + ItemChildTxt.GetComponent<Text>().text + "\n"; // Get Item Text component of child first child
+                itemString += itemChildTxt.GetComponent<Text>().text + "\n"; // Get Item Text component of child first child
                 itemTableC.text = itemString;
                 itemTableB.text = itemString;
-                GameObject priceChildTxt2 = Catchild.transform.GetChild(1).gameObject; // Get child object of CateType next child
-                priceString += "(1) " + priceChildTxt2.GetComponent<Text>().text + "\n";// Get Price Text component of child next child
+                GameObject priceChildTxt2 = catChild.transform.GetChild(1).gameObject; // Get child object of CateType next child
+                priceString += " " + priceChildTxt2.GetComponent<Text>().text + "\n";// Get Price Text component of child next child
                 priceTableC.text = priceString;
                 priceTableB.text = priceString;
                 float totalPrice = 0f; // Total price 
@@ -623,15 +637,15 @@ public class PosSystemV2 : UdonSharpBehaviour
                 totalCostTxtB.text = totalPrice.ToString();
                 totalCostTxtC.text = totalPrice.ToString();
                 barInput = totalPrice; // Store as gloabl variable
-                storedItem += "(1) " + ItemChildTxt.GetComponent<Text>().text + ", ";
+                storedItem += itemChildTxt.GetComponent<Text>().text + ", ";
                 DoStuff();
                 RequestSerialization();
                 break;
             }
             else
             {
-                Debug.LogWarning(Catchild + "is not selected category in hierarchy");
-                if (stageNum == 0) Catchild.SetActive(false); // Make sure I do not diable keypad when in use
+                Debug.LogWarning(catChild + "is not selected category in hierarchy, setActive: False");
+                if (stageNum == 0) catChild.SetActive(false); // Make sure I do not diable keypad when in use
             }
         }
         DoStuff();
@@ -675,12 +689,12 @@ public class PosSystemV2 : UdonSharpBehaviour
         itemName = localPlayer.GetPlayerTag("Item").ToString();
         tipper = float.Parse(itemName);
     }
-    public void Receipt(string item, float totalPrice, string name, float tip)
+    public void Receipt(string item, float totalPrice, string cusName, float tip, string barName)
     {
         if (storedreceipt == null || localPlayer.GetPlayerTag("PID") != 2.ToString()) return;
         if(boolBarAccept && boolCusAccept)
         {
-            string currentText = "CusName: " + name + ", Item(s): " + item + "Tip: $" + tip + "Total: $" + totalPrice + ".\n";
+            string currentText = "CusName: " + cusName + ", Item(s): " + item + ", Tender: " + barName + "Tip: $" + tip + "Total: $" + totalPrice + ".\n";
             storedreceipt = currentText;
             strReceipt += storedreceipt;
             reciptsDisplays.text = strReceipt;
